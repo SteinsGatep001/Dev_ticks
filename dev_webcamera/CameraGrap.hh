@@ -1,11 +1,11 @@
-#ifndef _DF__CAMERA_HH
-#define _DF__CAMERA_HH
+#ifndef _CAMERA_GRAP_HH
+#define _CAMERA_GRAP_HH
 #include <linux/videodev2.h>
 
 
 // projects
 
-#include "Convter.hh"
+#include "CamConverter.hh"
 
 #define DEFAULT_DEV_NAME "/dev/video0"
 #define OUT_FILENAME     "tmp"
@@ -26,11 +26,6 @@ class CameraGrap
 {
 private:
     int fd;
-    /**
-    __u32 format;
-    __u32 width;
-    __u32 height;
-    **/
     unsigned int n_buffers;
     struct v4l2_buffer buf;
     struct v4l2_format fmt;
@@ -40,15 +35,14 @@ private:
     unsigned char *frame_buffer;
 
 public:
-    Convter convter;
+    CamConverter converter;
     CameraGrap(char *dev_name, __u32 width, __u32 height);
     ~CameraGrap();
 
-    __u32 grap_frame(const char* pic_name);
-    //unsigned char * get_frameBuffer();
+    __u32 grap_frame(const char* pic_name, int width_des, int height_des);
     __u32 get_width();
     __u32 get_height();
-    void load_frame(AVPicture & pPictureDes, AVPixelFormat FMT, int width_des, int height_des);
+    unsigned char* get_frameBuffer();
 
 private:
     int open_device();
@@ -66,4 +60,3 @@ private:
 
 #endif
 /*_DF__CAMERA_H*/
-

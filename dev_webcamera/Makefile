@@ -5,43 +5,53 @@ CFLAGS = -fPIC -Wall -g -c # C flags
 RM = rm -f  # rm command
 LDFLAGS = -shared  # linking flags
 TARGET_LIB = libcam.so # target lib
-SRCS = CameraGrap.cpp Convter.cpp RtspServer.cpp # source files
+SRCS = CameraGrap.cpp CamConverter.cpp RtspCameraServer.cpp # source files
 OBJS = $(SRCS:.cpp=.o)
+LINKFLAGS = 
+INC = 
 
 TARGET_ELF = main
-# LINKFLAGS = -L./ -lcam -L./ -ljpeg
-LINKFLAGS = -L/usr/lib/x86_64-linux-gnu/ -ljpeg
 
-LIVE_LIB_PATH = ./live
+BASE_LIB_PATH = ./lib
+
+DEFAULT_LIB_PATH = /usr/local
+
+# libjpeg
+LIBJPEG_PATH = /usr/lib/x86_64-linux-gnu
+LINKFLAGS += -L$(LIBJPEG_PATH)/ -ljpeg
+INC += -I$(DEFAULT_LIB_PATH)/include
+
+# complied library path
+LIVE_LIB_PATH = $(BASE_LIB_PATH)/live
 LIVE_BASIC_PATH = $(LIVE_LIB_PATH)/BasicUsageEnvironment
 LIVE_GROUPSOC_PATH = $(LIVE_LIB_PATH)/groupsock
 LIVE_MEDIA_PATH = $(LIVE_LIB_PATH)/liveMedia
 LIVE_MIDEASER_PATH = $(LIVE_LIB_PATH)/mediaServer
 LIVE_PROXYSER_PATH = $(LIVE_LIB_PATH)/proxyServer
 LIVE_USAGEENV_PTTH = $(LIVE_LIB_PATH)/UsageEnvironment
-#LIVE_$(LIVE_LIB_PATH)/WindowsAudioInputDevice
-#testProgs
-LIVE_LINK = -L$(LIVE_BASIC_PATH)/ -lBasicUsageEnvironment \
+
+LINKFLAGS += -L$(LIVE_BASIC_PATH)/ -lBasicUsageEnvironment \
 			-L$(LIVE_GROUPSOC_PATH)/ -lgroupsock \
 			-L$(LIVE_MEDIA_PATH)/ -lliveMedia \
 			-L$(LIVE_USAGEENV_PTTH)/ -lUsageEnvironment
-#			-L$(LIVE_MIDEASER_PATH)/ -l
 
-LIVE_OBJS = $(wildcard $(LIVE_BASIC_PATH)/*.o) \
-			$(wildcard $(LIVE_GROUPSOC_PATH)/*.o) \
-			$(wildcard $(LIVE_MEDIA_PATH)/*.o) \
-			$(wildcard $(LIVE_MIDEASER_PATH)/*.o) \
-			$(wildcard $(LIVE_USAGEENV_PTTH)/*.o)
-# $(wildcard $(LIVE_PROXYSER_PATH)/*.o) \
-
-INC = -I $(LIVE_BASIC_PATH)/include \
+# live555 src
+INC += -I $(LIVE_BASIC_PATH)/include \
 		-I $(LIVE_GROUPSOC_PATH)/include \
 		-I $(LIVE_MEDIA_PATH)/include \
 		-I $(LIVE_MIDEASER_PATH)/ \
-		-I $(LIVE_USAGEENV_PTTH)/include \
+		-I $(LIVE_USAGEENV_PTTH)/include
+
+# mpeg src
+LINKFLAGS += -L$(DEFAULT_LIB_PATH)/lib -lavutil \
+			-L$(DEFAULT_LIB_PATH)/lib -lavdevice \
+			-L$(DEFAULT_LIB_PATH)/lib -lavcodec \
+			-L$(DEFAULT_LIB_PATH)/lib -lavfilter \
+			-L$(DEFAULT_LIB_PATH)/lib -lswscale
+
 
 CFLAGS += $(INC)
-LINKFLAGS += $(LIVE_LINK)
+
 
 #.DEFAULT_GOAL := all
 #all: $(TARGET_ELF) $(TARGET_LIB)

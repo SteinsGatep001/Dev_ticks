@@ -12,9 +12,10 @@
 #include <assert.h>
 #include <sys/ioctl.h>
 
+#include "CamHeader.hh"
 // projects
 #include "CameraGrap.hh"
-#include "Convter.hh"
+#include "CamConverter.hh"
 
 /**
     send request
@@ -51,7 +52,9 @@ CameraGrap::CameraGrap(char *dev_name, __u32 width, __u32 height)
     this->fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     this->fmt.fmt.pix.field       = V4L2_FIELD_ANY;
     snprintf(this->dev_name, NAME_MAX_LENGTH, "%s", dev_name);
-    this->frame_buffer = (unsigned char *)malloc(width*height*3*sizeof(char));
+
+    int numberBytes = avpicture_get_size(DF_OUT_FORMAT, width, height);
+    this->frame_buffer = (unsigned char *)malloc(numberBytes*sizeof(unsigned char));
     /* open and init the camera device */
     this->open_device();
     this->init_device();
@@ -191,9 +194,10 @@ void CameraGrap::check_capabilities()
  */
 int CameraGrap::set_frame_format()
 {
+    __u32 format = (this->fmt).fmt.pix.pixelformat;
     unsigned char sp_flag = 0;
     struct v4l2_fmtdesc fmt_ds;
-    printf("Your pixelformat = '%c%c%c%c'\n", this->format & 0xFF, (this->format >> 8) & 0xFF, (this->format >> 16) & 0xFF, (this->format >> 24) & 0xFF);
+    printf("Your pixelformat = '%c%c%c%c'\n", format & 0xFF, (format >> 8) & 0xFF, (format >> 16) & 0xFF, (format >> 24) & 0xFF);
     
     CLS_VAR(fmt_ds);
     fmt_ds.index = 0;
@@ -201,7 +205,7 @@ int CameraGrap::set_frame_format()
     while(x_ioctl(this->fd, VIDIOC_ENUM_FMT, &fmt_ds) == 0)
     {
         printf("[+] pixelformat = '%c%c%c%c', description = '%s'\n", fmt_ds.pixelformat & 0xFF, (fmt_ds.pixelformat >> 8) & 0xFF, (fmt_ds.pixelformat >> 16) & 0xFF, (fmt_ds.pixelformat >> 24) & 0xFF, fmt_ds.description);
-        if(fmt_ds.pixelformat == this->format)
+        if(fmt_ds.pixelformat == format)
         {
             sp_flag = 1;
             break;
@@ -312,21 +316,16 @@ int CameraGrap::read_frame()
         }
     }
     assert(this->buf.index < this->n_buffers);
-
-    //this->save_frame();
-    if(x_ioctl(this->fd, VIDIOC_QBUF, &(this->buf)) == -1)
-        x_errno_exit("VIDIOC_QBUF");
     return 1;
 }
 
 
-__u32 CameraGrap::grap_frame(const char* frame_name)
+__u32 CameraGrap::grap_frame(const char* frame_name, int width_des, int height_des)
 {
     struct timeval tv;
     int ret;
     fd_set fds;
     snprintf(this->frame_name, NAME_MAX_LENGTH, "%s", frame_name);
-    #if 1
     while(1)
     {
         FD_ZERO(&fds);
@@ -350,36 +349,14 @@ __u32 CameraGrap::grap_frame(const char* frame_name)
         if(read_frame())
             break;
     }
-    #endif
-    return this->buf.bytesused;
-}
 
-void CameraGrap::load_frame(AVPicture & pPictureDes, AVPixelFormat FMT, int width_des, int height_des)
-{
-    AVPicture pPictureSrc;
-    SwsContext * pSwsCtx;
-    pPictureSrc.data[0] = (unsigned char *) this->buffers[(this->buf).index].start;
-    pPictureSrc.data[1] = pPictureSrc.data[2] = pPictureSrc.data[3] = NULL;
-    pPictureSrc.linesize[0] = this->fmt.fmt.pix.bytesperline;
-    int i = 0;
-    for (i = 1; i < 8; i++)
-    {
-        pPictureSrc.linesize[i] = 0;
-    }
-    // get PIX_FMT_YUYV422 不裁剪
-    pSwsCtx = sws_getContext(this->fmt.fmt.pix.width, this->fmt.fmt.pix.height, this->fmt.fmt.pix.pixelformat,\
-     width_des, height_des, FMT, \
-            SWS_BICUBIC, 0, 0, 0);
-    int res = sws_scale(pSwsCtx, pPictureSrc.data, pPictureSrc.linesize, 0, \
-            height, pPictureDes.data, pPictureDes.linesize);
-    if (res == -1)
-    {
-        printf("Can open to change to des image");
-        return false;
-    }
-    sws_freeContext(pSwsCtx);
-    //memset(this->frame_buffer, 0, 3*(this->width)*(this->height));
-    //convter.yuv2rgb(this->width, this->height, (unsigned char*)p, (unsigned char*)this->frame_buffer);
+    (this->converter).convert_yuv2rgb((unsigned char*)this->buffers[this->buf.index].start, this->frame_buffer, &(this->fmt), width_des, height_des);
+    // for next frame grap
+    if(x_ioctl(this->fd, VIDIOC_QBUF, &(this->buf)) == -1)
+        x_errno_exit("VIDIOC_QBUF");
+
+    (this->converter).save_jpeg(this->frame_buffer, width_des, height_des, frame_name, 70);
+    return this->buf.bytesused;
 }
 
 unsigned char * CameraGrap::get_frameBuffer()
@@ -395,4 +372,3 @@ __u32 CameraGrap::get_height()
 {
     return this->fmt.fmt.pix.height;
 }
-

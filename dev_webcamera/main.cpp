@@ -6,13 +6,15 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "CamHeader.hh"
+
 // libc
 #include <liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 
 // project
 #include "CameraGrap.hh"
-#include "Convter.hh"
+#include "CamConverter.hh"
 #include "RtspCameraServer.hh"
 
 /*
@@ -27,6 +29,10 @@ int main(int argc, char *argv[])
     char dev_default_name[20] = DEFAULT_DEV_NAME;
     char tmp_file_name[40] = {0};
     __u32 rd_bytes = 0;
+    __u32 width = 640;
+    __u32 height = 480;
+
+    
     unsigned char *frame_buf = NULL;
     
     if(argc == 1)
@@ -39,12 +45,12 @@ int main(int argc, char *argv[])
         dev_name = argv[1];
     }
     printf("[+] Starting camera !\n");
-    CameraGrap *ptrCamera = new CameraGrap(dev_name, 640, 480);
+    CameraGrap *ptrCamera = new CameraGrap(dev_name, width, height);
     for(i=0; i<10; i++)
     {
         snprintf(tmp_file_name, 40, "tmp%d.jpg", i);
-        rd_bytes = ptrCamera->grap_frame(tmp_file_name);
-        ptrCamera->load_frame(AVPicture & pPictureDes, V4L2_PIX_FMT_MJPEG, 640, 480);
+        ptrCamera->grap_frame(tmp_file_name, width, height);
+        frame_buf = ptrCamera->get_frameBuffer();
         if (frame_buf == NULL)
         {
             /* code */
@@ -52,10 +58,12 @@ int main(int argc, char *argv[])
         }
         else
         {
-            (ptrCamera->convter).save_jpeg(frame_buf, ptrCamera->get_width(), ptrCamera->get_height(), tmp_file_name, 70);
-            printf("read %d bytes\n", rd_bytes);
+            //(ptrCamera->converter).save_jpeg(frame_buf, ptrCamera->get_width(), ptrCamera->get_height(), tmp_file_name, 70);
+            printf("saving %s\n", tmp_file_name);
         }
     }
+
+    free(frame_buf);
     return 0;
 }
 
