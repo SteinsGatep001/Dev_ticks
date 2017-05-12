@@ -53,8 +53,10 @@ CameraGrap::CameraGrap(char *dev_name, __u32 width, __u32 height)
     this->fmt.fmt.pix.field       = V4L2_FIELD_ANY;
     snprintf(this->dev_name, NAME_MAX_LENGTH, "%s", dev_name);
 
-    int numberBytes = avpicture_get_size(DF_OUT_FORMAT, width, height);
-    this->frame_buffer = (unsigned char *)malloc(numberBytes*sizeof(unsigned char));
+    int numberBytes = avpicture_get_size(AV_PIX_FMT_RGB24, width, height);
+    this->frame_rgb24buffer = (unsigned char *)malloc(numberBytes*sizeof(unsigned char));
+    numberBytes = avpicture_get_size(AV_PIX_FMT_YUV420P9, width, height);
+    this->frame_yuv420p9buffer = (unsigned char *)malloc(numberBytes*sizeof(unsigned char));
     /* open and init the camera device */
     this->open_device();
     this->init_device();
@@ -67,7 +69,8 @@ CameraGrap::~CameraGrap()
 {
     this->stop_capture();
     this->uninit_device();
-    free(this->frame_buffer);
+    free(this->frame_rgb24buffer);
+    free(this->frame_yuv420p9buffer);
     if(close(this->fd) == -1)
         x_errno_exit("close device");
 }
@@ -350,18 +353,26 @@ __u32 CameraGrap::grap_frame(const char* frame_name, int width_des, int height_d
             break;
     }
 
-    (this->converter).convert_yuv2rgb((unsigned char*)this->buffers[this->buf.index].start, this->frame_buffer, &(this->fmt), width_des, height_des);
+    /**
+    (this->converter).convert_yuyv2rgb24((unsigned char*)this->buffers[this->buf.index].start, this->frame_rgb24buffer, &(this->fmt), width_des, height_des);
+    
+    (this->converter).save_jpeg(this->frame_rgb24buffer, width_des, height_des, frame_name, 70);
+    **/
+    (this->converter).convert_src2des((unsigned char*)this->buffers[this->buf.index].start, this->frame_rgb24buffer, this->fmt.fmt.pix.width, this->fmt.fmt.pix.height, width_des, height_des, AV_PIX_FMT_YUYV422, AV_PIX_FMT_RGB24);
+    (this->converter).save_jpeg(this->frame_rgb24buffer, width_des, height_des, frame_name, 70);
+    (this->converter).convert_src2des(this->frame_rgb24buffer, this->frame_yuv420p9buffer, this->fmt.fmt.pix.width, this->fmt.fmt.pix.height, width_des, height_des, AV_PIX_FMT_RGB24, AV_PIX_FMT_YUV420P9);
+
     // for next frame grap
     if(x_ioctl(this->fd, VIDIOC_QBUF, &(this->buf)) == -1)
         x_errno_exit("VIDIOC_QBUF");
 
-    (this->converter).save_jpeg(this->frame_buffer, width_des, height_des, frame_name, 70);
+    
     return this->buf.bytesused;
 }
 
-unsigned char * CameraGrap::get_frameBuffer()
+unsigned char * CameraGrap::get_yuv420p9frameBuffer()
 {
-    return (unsigned char*)this->frame_buffer;
+    return (unsigned char*)this->frame_yuv420p9buffer;
 }
 
 __u32 CameraGrap::get_width()

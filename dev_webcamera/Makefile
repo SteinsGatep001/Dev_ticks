@@ -5,7 +5,7 @@ CFLAGS = -fPIC -Wall -g -c # C flags
 RM = rm -f  # rm command
 LDFLAGS = -shared  # linking flags
 TARGET_LIB = libcam.so # target lib
-SRCS = CameraGrap.cpp CamConverter.cpp RtspCameraServer.cpp # source files
+SRCS = CameraGrap.cpp CamConverter.cpp RtspV4l2Server.cpp # source files
 OBJS = $(SRCS:.cpp=.o)
 LINKFLAGS = 
 INC = 

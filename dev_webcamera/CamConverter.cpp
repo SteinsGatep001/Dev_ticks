@@ -100,7 +100,7 @@ void CamConverter::save_jpeg(unsigned char* img, int width, int height, const ch
 }
 
 
-int CamConverter::convert_yuv2rgb(unsigned char *srcBuf, unsigned char *desBuf, struct v4l2_format *fmt, int width_des, int height_des)
+int CamConverter::convert_yuyv2rgb24(unsigned char *srcBuf, unsigned char *desBuf, struct v4l2_format *fmt, int width_des, int height_des)
 {
     __u32 width = fmt->fmt.pix.width;
     __u32 height = fmt->fmt.pix.height;
@@ -121,10 +121,10 @@ int CamConverter::convert_yuv2rgb(unsigned char *srcBuf, unsigned char *desBuf, 
         pPictureSrc.linesize[i] = 0;
     }
     // set des
-    avpicture_fill(&pPictureDes, desBuf, DF_OUT_FORMAT, width, height);
+    avpicture_fill(&pPictureDes, desBuf, AV_PIX_FMT_RGB24, width, height);
     // get PIX_FMT_YUYV422
-    pSwsCtx = sws_getContext(width, height, DF_INPUT_FORMAT,\
-     width_des, height_des, DF_OUT_FORMAT, \
+    pSwsCtx = sws_getContext(width, height, AV_PIX_FMT_YUYV422,\
+     width_des, height_des, AV_PIX_FMT_RGB24, \
             SWS_BICUBIC, 0, 0, 0);
     if(pSwsCtx == NULL)
     {
@@ -139,5 +139,73 @@ int CamConverter::convert_yuv2rgb(unsigned char *srcBuf, unsigned char *desBuf, 
         return -1;
     }
     sws_freeContext(pSwsCtx);
+    return 0;
+}
+
+int CamConverter::convert_src2des(unsigned char *srcBuf, unsigned char *desBuf, int width, int height, int width_des, int height_des, AVPixelFormat resFMT, AVPixelFormat desFMT)
+{
+    if(srcBuf == NULL || desBuf == NULL || width_des < 1 || height_des<1)
+    {
+        perror("error convert");
+        return -1;
+    }
+    AVPicture pPictureSrc, pPictureDes;
+    SwsContext * pSwsCtx;
+
+    avpicture_fill(&pPictureSrc, srcBuf, resFMT, width, height);
+    // set des
+    avpicture_fill(&pPictureDes, desBuf, desFMT, width, height);
+    // get
+    pSwsCtx = sws_getContext(width, height, resFMT,\
+     width_des, height_des, desFMT, \
+            SWS_BICUBIC, 0, 0, 0);
+    if(pSwsCtx == NULL)
+    {
+        perror("sws get context");
+        return -1;
+    }
+    int res = sws_scale(pSwsCtx, pPictureSrc.data, pPictureSrc.linesize, 0, \
+            height, pPictureDes.data,  pPictureDes.linesize);
+    if (res == -1)
+    {
+        printf("Can open to change to des image");
+        return -1;
+    }
+    sws_freeContext(pSwsCtx);
+    return 0;
+}
+
+
+int encode_h264(unsigned char *yuv_buffer, int fps_num, int width, int height)
+{
+    x264_t *encoder;
+    x264_picture_t pic_in, pic_out;
+    int inf, outf;
+    uint8_t *yuv_buffer;
+    x264_nal_t *nals;
+
+    // init encoder
+    x264_param_t param;
+    x264_param_default_preset(&param, "veryfast", "zerolatency");
+    param.i_threads = 1;
+    param.i_width = width;
+    param.i_height = height;
+    param.i_fps_num = fps_num;
+    param.i_fps_den = 1;
+    param.i_keyint_max = 25;
+    param.b_intra_refresh = 1;
+    param.b_annexb = 1;
+
+    x264_param_apply_profile(&param, "baseline");
+    encoder = x264_encoder_open($param);
+
+    // init pic_in
+    x264_picture_alloc(&pic_in, X264_CSP_I420, width, height);
+    //yuv_buffer = malloc(yuv_size);
+    pic_in.img.plane[0] = yuv_buffer;
+    pic_in.img.plane[1] = pic_in.img.plane[0] + width*height;
+    pic_in.img.plane[2] = pic_in.img.plane[1] + width*height/4;
+
+    x264_encoder_encode(encoder, &nals);
     return 0;
 }

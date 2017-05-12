@@ -32,7 +32,8 @@ private:
     char dev_name[NAME_MAX_LENGTH];
     struct buffer  *buffers;
     char frame_name[NAME_MAX_LENGTH];
-    unsigned char *frame_buffer;
+    unsigned char *frame_rgb24buffer;
+    unsigned char *frame_yuv420p9buffer;
 
 public:
     CamConverter converter;
@@ -42,7 +43,7 @@ public:
     __u32 grap_frame(const char* pic_name, int width_des, int height_des);
     __u32 get_width();
     __u32 get_height();
-    unsigned char* get_frameBuffer();
+    unsigned char* get_yuv420p9frameBuffer();
 
 private:
     int open_device();

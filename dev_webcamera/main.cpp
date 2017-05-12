@@ -15,7 +15,7 @@
 // project
 #include "CameraGrap.hh"
 #include "CamConverter.hh"
-#include "RtspCameraServer.hh"
+#include "RtspV4l2Server.hh"
 
 /*
 @deadfish
@@ -31,6 +31,9 @@ int main(int argc, char *argv[])
     __u32 rd_bytes = 0;
     __u32 width = 640;
     __u32 height = 480;
+
+
+    RtspV4l2Server* mRtspV4l2Ser = new RtspV4l2Server();
 
     
     unsigned char *frame_buf = NULL;
@@ -49,8 +52,9 @@ int main(int argc, char *argv[])
     for(i=0; i<10; i++)
     {
         snprintf(tmp_file_name, 40, "tmp%d.jpg", i);
+        printf("saving %s\n", tmp_file_name);
         ptrCamera->grap_frame(tmp_file_name, width, height);
-        frame_buf = ptrCamera->get_frameBuffer();
+        frame_buf = ptrCamera->get_yuv420p9frameBuffer();
         if (frame_buf == NULL)
         {
             /* code */
@@ -59,7 +63,7 @@ int main(int argc, char *argv[])
         else
         {
             //(ptrCamera->converter).save_jpeg(frame_buf, ptrCamera->get_width(), ptrCamera->get_height(), tmp_file_name, 70);
-            printf("saving %s\n", tmp_file_name);
+            printf("encoding\n");
         }
     }
 

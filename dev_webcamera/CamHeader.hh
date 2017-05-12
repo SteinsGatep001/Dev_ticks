@@ -25,6 +25,7 @@ extern "C"
 extern "C"
 {
 #endif
+
 #include "libavcodec/avcodec.h" 
 #include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
@@ -33,13 +34,15 @@ extern "C"
 #include "libavutil/mathematics.h"
 #include "libavutil/pixfmt.h"
 #include "libavutil/samplefmt.h"
+#include <x264.h>
+
 #ifdef __cplusplus
 }
 #endif
 
 
-#define DF_OUT_FORMAT AV_PIX_FMT_RGB24 
-#define DF_INPUT_FORMAT AV_PIX_FMT_YUYV422
+//#define DF_OUT_FORMAT AV_PIX_FMT_RGB24 
+//#define DF_INPUT_FORMAT AV_PIX_FMT_YUYV422
 
 
 #endif
