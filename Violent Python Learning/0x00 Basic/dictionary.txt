@@ -1,0 +1,7 @@
+fish
+pig
+milk
+read
+crypt
+root
+toor
