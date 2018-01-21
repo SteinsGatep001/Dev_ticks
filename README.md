@@ -28,7 +28,7 @@ perl: warning: Please check that your locale settings:
 	LC_CTYPE = "zh_CN.UTF-8",
 	LANG = "en_US.UTF-8"
 ```
-#### solution
+#### solution1
 1. generate locale
 ```
 locale-gen en_US.UTF-8
@@ -40,4 +40,11 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 locale-gen en_US.UTF-8
 dpkg-reconfigure locales
+```
+
+#### solution2
+edit `/etc/environment`
+```bash
+LC_ALL=en_US.UTF-8
+LANG=en_US.UTF-8
 ```
